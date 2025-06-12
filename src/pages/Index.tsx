@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import QuickActions from "@/components/QuickActions";
 import DocumentUpload from "@/components/DocumentUpload";
 import DocumentReview from "@/components/DocumentReview";
 import ExportInterface from "@/components/ExportInterface";
+import ExportHistory from "@/components/ExportHistory";
 
 export interface Document {
   id: string;
@@ -68,6 +68,12 @@ const Index = () => {
             documents={documents}
             onBack={handleBackToDashboard}
             onDocumentsUpdate={setDocuments}
+          />
+        );
+      case "history":
+        return (
+          <ExportHistory 
+            onBack={handleBackToDashboard}
           />
         );
       case "processing":

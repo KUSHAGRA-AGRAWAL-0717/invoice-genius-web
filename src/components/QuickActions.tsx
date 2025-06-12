@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, Search, FileText, Settings, Download } from "lucide-react";
+import { Upload, Search, FileText, Settings, Download, History } from "lucide-react";
 
 interface QuickActionsProps {
   onNavigate: (section: string) => void;
@@ -28,6 +28,13 @@ const QuickActions = ({ onNavigate }: QuickActionsProps) => {
       description: "Download processed data",
       icon: Download,
       action: "export",
+      variant: "outline" as const
+    },
+    {
+      title: "Export History",
+      description: "View past exports and details",
+      icon: History,
+      action: "history",
       variant: "outline" as const
     },
     {
