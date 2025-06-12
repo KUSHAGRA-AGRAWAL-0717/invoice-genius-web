@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, Search, FileText, Settings } from "lucide-react";
+import { Upload, Search, FileText, Settings, Download } from "lucide-react";
 
 interface QuickActionsProps {
   onNavigate: (section: string) => void;
@@ -10,8 +10,8 @@ interface QuickActionsProps {
 const QuickActions = ({ onNavigate }: QuickActionsProps) => {
   const actions = [
     {
-      title: "Upload New Invoices",
-      description: "Add invoices for OCR processing",
+      title: "Upload New Documents",
+      description: "Add documents for OCR processing",
       icon: Upload,
       action: "upload",
       variant: "default" as const
@@ -24,10 +24,10 @@ const QuickActions = ({ onNavigate }: QuickActionsProps) => {
       variant: "outline" as const
     },
     {
-      title: "View Processed",
-      description: "Access completed invoices",
-      icon: FileText,
-      action: "processed",
+      title: "Export Ready Documents",
+      description: "Download processed data",
+      icon: Download,
+      action: "export",
       variant: "outline" as const
     },
     {
