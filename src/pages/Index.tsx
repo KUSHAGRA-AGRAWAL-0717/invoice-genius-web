@@ -9,6 +9,7 @@ import DocumentUpload from "@/components/DocumentUpload";
 import DocumentReview from "@/components/DocumentReview";
 import ExportInterface from "@/components/ExportInterface";
 import ExportHistory from "@/components/ExportHistory";
+import TemplateFormCreator from "@/components/TemplateFormCreator";
 
 export interface Document {
   id: string;
@@ -82,7 +83,9 @@ const Index = () => {
           setActiveSection("review");
         }} />;
       case "templates":
-        return <TemplateManagement onBack={handleBackToDashboard} />;
+        return <TemplateManagement onBack={handleBackToDashboard} onCreateTemplate={() => setActiveSection("template-creator")} />;
+      case "template-creator":
+        return <TemplateFormCreator onBack={() => setActiveSection("templates")} />;
       default:
         return (
           <div className="space-y-6">
@@ -197,7 +200,13 @@ const ProcessingQueue = ({ documents, onBack, onSelectDocument }: {
 };
 
 // Template Management Component
-const TemplateManagement = ({ onBack }: { onBack: () => void }) => {
+const TemplateManagement = ({ onBack, onCreateTemplate }: { onBack: () => void, onCreateTemplate: () => void }) => {
+  const templates = [
+    { id: 1, name: "Invoice Template", fields: 8, created: "2024-01-15" },
+    { id: 2, name: "Receipt Template", fields: 5, created: "2024-01-10" },
+    { id: 3, name: "Register Entry Template", fields: 5, created: "2024-01-05" }
+  ];
+
   return (
     <Card>
       <CardHeader>
@@ -210,11 +219,36 @@ const TemplateManagement = ({ onBack }: { onBack: () => void }) => {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-center py-12">
-          <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-lg font-medium mb-2">No templates created</h3>
-          <p className="text-muted-foreground mb-4">Create your first template to get started</p>
-          <Button>Create New Template</Button>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium">Available Templates</h3>
+            <Button onClick={onCreateTemplate}>Create New Template</Button>
+          </div>
+          
+          {templates.length === 0 ? (
+            <div className="text-center py-12">
+              <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-medium mb-2">No templates created</h3>
+              <p className="text-muted-foreground mb-4">Create your first template to get started</p>
+              <Button onClick={onCreateTemplate}>Create New Template</Button>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {templates.map((template) => (
+                <div key={template.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                  <div className="flex-1">
+                    <h4 className="font-medium">{template.name}</h4>
+                    <p className="text-sm text-muted-foreground">{template.fields} fields • Created: {template.created}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm">Edit</Button>
+                    <Button variant="outline" size="sm">Duplicate</Button>
+                    <Button variant="outline" size="sm" onClick={onCreateTemplate}>View Sample</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
