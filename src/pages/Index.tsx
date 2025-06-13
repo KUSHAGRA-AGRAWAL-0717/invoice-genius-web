@@ -1,257 +1,147 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Upload, FileText, Search, Settings, User, Download } from "lucide-react";
-import DashboardStats from "@/components/DashboardStats";
-import RecentActivity from "@/components/RecentActivity";
-import QuickActions from "@/components/QuickActions";
 import DocumentUpload from "@/components/DocumentUpload";
 import DocumentReview from "@/components/DocumentReview";
 import ExportInterface from "@/components/ExportInterface";
 import ExportHistory from "@/components/ExportHistory";
-import TemplateFormCreator from "@/components/TemplateFormCreator";
-
-export interface Document {
-  id: string;
-  name: string;
-  type: string;
-  uploadDate: string;
-  status: 'pending' | 'reviewing' | 'approved' | 'rejected' | 'ready_for_export' | 'exported';
-  ocrData: Record<string, any>;
-  templateType: string;
-}
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CalendarIcon, CheckCircle2, DollarSign, File, FileJson2, ListChecks } from "lucide-react";
+import TemplateSelector from "@/components/TemplateSelector";
 
 const Index = () => {
-  const [activeSection, setActiveSection] = useState("dashboard");
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [activeView, setActiveView] = useState<'dashboard' | 'upload' | 'review' | 'export' | 'history' | 'templates'>('dashboard');
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [currentDocument, setCurrentDocument] = useState<any | null>(null);
+  const [exportHistory, setExportHistory] = useState<any[]>([]);
 
-  const handleDocumentUpload = (newDoc: Document) => {
-    setDocuments(prev => [...prev, newDoc]);
-    setSelectedDocument(newDoc);
-    setActiveSection("review");
-  };
-
-  const handleDocumentUpdate = (updatedDoc: Document) => {
-    setDocuments(prev => 
-      prev.map(doc => doc.id === updatedDoc.id ? updatedDoc : doc)
-    );
-    setSelectedDocument(updatedDoc);
-  };
-
-  const handleBackToDashboard = () => {
-    setActiveSection("dashboard");
-    setSelectedDocument(null);
-  };
-
-  const renderContent = () => {
-    switch (activeSection) {
-      case "upload":
-        return (
-          <DocumentUpload 
-            onBack={handleBackToDashboard}
-            onDocumentUpload={handleDocumentUpload}
-          />
-        );
-      case "review":
-        return selectedDocument ? (
-          <DocumentReview 
-            document={selectedDocument}
-            onBack={handleBackToDashboard}
-            onDocumentUpdate={handleDocumentUpdate}
-          />
-        ) : (
-          <div>No document selected</div>
-        );
-      case "export":
-        return (
-          <ExportInterface 
-            documents={documents}
-            onBack={handleBackToDashboard}
-            onDocumentsUpdate={setDocuments}
-          />
-        );
-      case "history":
-        return (
-          <ExportHistory 
-            onBack={handleBackToDashboard}
-          />
-        );
-      case "processing":
-        return <ProcessingQueue documents={documents} onBack={handleBackToDashboard} onSelectDocument={(doc) => {
-          setSelectedDocument(doc);
-          setActiveSection("review");
-        }} />;
-      case "templates":
-        return <TemplateManagement onBack={handleBackToDashboard} onCreateTemplate={() => setActiveSection("template-creator")} />;
-      case "template-creator":
-        return <TemplateFormCreator onBack={() => setActiveSection("templates")} />;
-      default:
-        return (
-          <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">Invoice OCR Dashboard</h1>
-                <p className="text-muted-foreground">Process and extract data from your invoices with AI-powered accuracy</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Settings
-                </Button>
-                <Button variant="outline" size="sm">
-                  <User className="h-4 w-4 mr-2" />
-                  Profile
-                </Button>
-              </div>
-            </div>
-
-            <DashboardStats />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <QuickActions onNavigate={setActiveSection} />
-              <RecentActivity />
-            </div>
-          </div>
-        );
-    }
-  };
-
-  if (activeSection !== "dashboard") {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-6">
-          {renderContent()}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6">
-        {renderContent()}
-      </div>
-    </div>
-  );
-};
-
-// Processing Queue Component
-const ProcessingQueue = ({ documents, onBack, onSelectDocument }: { 
-  documents: Document[], 
-  onBack: () => void,
-  onSelectDocument: (doc: Document) => void 
-}) => {
-  const getStatusBadge = (status: string) => {
-    const statusColors = {
-      pending: "bg-yellow-100 text-yellow-800",
-      reviewing: "bg-blue-100 text-blue-800", 
-      approved: "bg-green-100 text-green-800",
-      rejected: "bg-red-100 text-red-800",
-      ready_for_export: "bg-purple-100 text-purple-800",
-      exported: "bg-gray-100 text-gray-800"
-    };
-    return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[status as keyof typeof statusColors]}`}>
-        {status.replace('_', ' ')}
-      </span>
-    );
+  const handleManageTemplates = () => {
+    setActiveView('templates');
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={onBack}>← Back</Button>
-          <div>
-            <CardTitle>Processing Queue</CardTitle>
-            <CardDescription>Monitor and manage your document processing</CardDescription>
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow">
+        <div className="container mx-auto py-6 px-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+            <div className="space-x-4">
+              <Button onClick={() => setActiveView('upload')}><File className="mr-2 h-4 w-4" /> Upload Document</Button>
+              <Button onClick={handleManageTemplates}>Manage Templates</Button>
+            </div>
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
-        {documents.length === 0 ? (
-          <div className="text-center py-12">
-            <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-medium mb-2">No documents in queue</h3>
-            <p className="text-muted-foreground">Upload some documents to start processing</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {documents.map((doc) => (
-              <div key={doc.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
-                <div className="flex-1">
-                  <h4 className="font-medium">{doc.name}</h4>
-                  <p className="text-sm text-muted-foreground">Uploaded: {doc.uploadDate}</p>
-                  <p className="text-sm text-muted-foreground">Type: {doc.templateType}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  {getStatusBadge(doc.status)}
-                  <Button variant="outline" size="sm" onClick={() => onSelectDocument(doc)}>
-                    View Details
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-8">
+        {activeView === 'dashboard' && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Documents</CardTitle>
+                  <File className="h-4 w-4 text-gray-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{documents.length}</div>
+                  <p className="text-sm text-gray-500">All uploaded documents</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Approved Documents</CardTitle>
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{documents.filter(doc => doc.status === 'approved').length}</div>
+                  <p className="text-sm text-gray-500">Documents ready for export</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Exports</CardTitle>
+                  <FileJson2 className="h-4 w-4 text-blue-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{exportHistory.length}</div>
+                  <p className="text-sm text-gray-500">Number of exports performed</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+                <CardDescription>Latest document uploads and approvals</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {documents.slice(0, 5).map(doc => (
+                  <div key={doc.id} className="py-2 border-b border-gray-200 last:border-none">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        {doc.status === 'approved' ? <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> : <File className="mr-2 h-4 w-4 text-gray-500" />}
+                        <span>{doc.name}</span>
+                      </div>
+                      <span className="text-sm text-gray-500">{doc.status === 'approved' ? 'Approved' : 'Uploaded'}</span>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </>
         )}
-      </CardContent>
-    </Card>
-  );
-};
 
-// Template Management Component
-const TemplateManagement = ({ onBack, onCreateTemplate }: { onBack: () => void, onCreateTemplate: () => void }) => {
-  const templates = [
-    { id: 1, name: "Invoice Template", fields: 8, created: "2024-01-15" },
-    { id: 2, name: "Receipt Template", fields: 5, created: "2024-01-10" },
-    { id: 3, name: "Register Entry Template", fields: 5, created: "2024-01-05" }
-  ];
+        {activeView === 'upload' && (
+          <DocumentUpload 
+            onBack={() => setActiveView('dashboard')}
+            onDocumentProcessed={(doc) => {
+              setDocuments(prev => [...prev, doc]);
+              setActiveView('review');
+              setCurrentDocument(doc);
+            }}
+          />
+        )}
 
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={onBack}>← Back</Button>
-          <div>
-            <CardTitle>Template Management</CardTitle>
-            <CardDescription>Create and manage your document templates</CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-medium">Available Templates</h3>
-            <Button onClick={onCreateTemplate}>Create New Template</Button>
-          </div>
-          
-          {templates.length === 0 ? (
-            <div className="text-center py-12">
-              <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-medium mb-2">No templates created</h3>
-              <p className="text-muted-foreground mb-4">Create your first template to get started</p>
-              <Button onClick={onCreateTemplate}>Create New Template</Button>
-            </div>
-          ) : (
-            <div className="grid gap-4">
-              {templates.map((template) => (
-                <div key={template.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
-                  <div className="flex-1">
-                    <h4 className="font-medium">{template.name}</h4>
-                    <p className="text-sm text-muted-foreground">{template.fields} fields • Created: {template.created}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">Edit</Button>
-                    <Button variant="outline" size="sm">Duplicate</Button>
-                    <Button variant="outline" size="sm" onClick={onCreateTemplate}>View Sample</Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+        {activeView === 'review' && currentDocument && (
+          <DocumentReview 
+            document={currentDocument}
+            onBack={() => setActiveView('dashboard')}
+            onApprove={(doc) => {
+              setDocuments(prev => prev.map(d => d.id === doc.id ? doc : d));
+              setActiveView('dashboard');
+            }}
+          />
+        )}
+
+        {activeView === 'export' && (
+          <ExportInterface 
+            documents={documents.filter(doc => doc.status === 'approved')}
+            onBack={() => setActiveView('dashboard')}
+            onExport={(exportedDocs, exportData) => {
+              setExportHistory(prev => [...prev, {
+                date: new Date().toLocaleDateString(),
+                documents: exportedDocs.map(doc => doc.name),
+                exportData
+              }]);
+              setDocuments(prev => prev.filter(doc => !exportedDocs.find(eDoc => eDoc.id === doc.id)));
+              setActiveView('dashboard');
+            }}
+          />
+        )}
+
+        {activeView === 'history' && (
+          <ExportHistory 
+            exports={exportHistory}
+            onBack={() => setActiveView('dashboard')}
+          />
+        )}
+
+        {activeView === 'templates' && (
+          <TemplateSelector onBack={() => setActiveView('dashboard')} />
+        )}
+      </main>
+    </div>
   );
 };
 
