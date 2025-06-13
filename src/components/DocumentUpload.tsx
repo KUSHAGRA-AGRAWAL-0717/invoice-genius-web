@@ -1,9 +1,8 @@
-
 import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, Camera } from "lucide-react";
-import { Document } from "@/pages/Index";
+import { Document } from "@/types/document";
 
 interface DocumentUploadProps {
   onBack: () => void;

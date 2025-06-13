@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Download, FileSpreadsheet, Filter } from "lucide-react";
-import { Document } from "@/pages/Index";
+import { Document } from "@/types/document";
 import { toast } from "sonner";
 
 interface ExportInterfaceProps {

@@ -1,17 +1,19 @@
+
 import { useState } from "react";
 import DocumentUpload from "@/components/DocumentUpload";
 import DocumentReview from "@/components/DocumentReview";
 import ExportInterface from "@/components/ExportInterface";
 import ExportHistory from "@/components/ExportHistory";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CalendarIcon, CheckCircle2, DollarSign, File, FileJson2, ListChecks } from "lucide-react";
 import TemplateSelector from "@/components/TemplateSelector";
+import { Document } from "@/types/document";
 
 const Index = () => {
   const [activeView, setActiveView] = useState<'dashboard' | 'upload' | 'review' | 'export' | 'history' | 'templates'>('dashboard');
-  const [documents, setDocuments] = useState<any[]>([]);
-  const [currentDocument, setCurrentDocument] = useState<any | null>(null);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [currentDocument, setCurrentDocument] = useState<Document | null>(null);
   const [exportHistory, setExportHistory] = useState<any[]>([]);
 
   const handleManageTemplates = () => {
@@ -53,7 +55,7 @@ const Index = () => {
                   <CheckCircle2 className="h-4 w-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{documents.filter(doc => doc.status === 'approved').length}</div>
+                  <div className="text-2xl font-bold">{documents.filter(doc => doc.status === 'ready_for_export').length}</div>
                   <p className="text-sm text-gray-500">Documents ready for export</p>
                 </CardContent>
               </Card>
@@ -80,10 +82,10 @@ const Index = () => {
                   <div key={doc.id} className="py-2 border-b border-gray-200 last:border-none">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
-                        {doc.status === 'approved' ? <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> : <File className="mr-2 h-4 w-4 text-gray-500" />}
+                        {doc.status === 'ready_for_export' ? <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> : <File className="mr-2 h-4 w-4 text-gray-500" />}
                         <span>{doc.name}</span>
                       </div>
-                      <span className="text-sm text-gray-500">{doc.status === 'approved' ? 'Approved' : 'Uploaded'}</span>
+                      <span className="text-sm text-gray-500">{doc.status === 'ready_for_export' ? 'Approved' : 'Uploaded'}</span>
                     </div>
                   </div>
                 ))}
@@ -95,7 +97,7 @@ const Index = () => {
         {activeView === 'upload' && (
           <DocumentUpload 
             onBack={() => setActiveView('dashboard')}
-            onDocumentProcessed={(doc) => {
+            onDocumentUpload={(doc) => {
               setDocuments(prev => [...prev, doc]);
               setActiveView('review');
               setCurrentDocument(doc);
@@ -107,7 +109,7 @@ const Index = () => {
           <DocumentReview 
             document={currentDocument}
             onBack={() => setActiveView('dashboard')}
-            onApprove={(doc) => {
+            onDocumentUpdate={(doc) => {
               setDocuments(prev => prev.map(d => d.id === doc.id ? doc : d));
               setActiveView('dashboard');
             }}
@@ -116,15 +118,15 @@ const Index = () => {
 
         {activeView === 'export' && (
           <ExportInterface 
-            documents={documents.filter(doc => doc.status === 'approved')}
+            documents={documents.filter(doc => doc.status === 'ready_for_export')}
             onBack={() => setActiveView('dashboard')}
-            onExport={(exportedDocs, exportData) => {
+            onDocumentsUpdate={(exportedDocs) => {
               setExportHistory(prev => [...prev, {
                 date: new Date().toLocaleDateString(),
-                documents: exportedDocs.map(doc => doc.name),
-                exportData
+                documents: exportedDocs.filter(doc => doc.status === 'exported').map(doc => doc.name),
+                exportData: exportedDocs.filter(doc => doc.status === 'exported')
               }]);
-              setDocuments(prev => prev.filter(doc => !exportedDocs.find(eDoc => eDoc.id === doc.id)));
+              setDocuments(exportedDocs);
               setActiveView('dashboard');
             }}
           />
@@ -132,7 +134,7 @@ const Index = () => {
 
         {activeView === 'history' && (
           <ExportHistory 
-            exports={exportHistory}
+            exportHistory={exportHistory}
             onBack={() => setActiveView('dashboard')}
           />
         )}

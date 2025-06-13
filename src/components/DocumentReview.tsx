@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, Edit, MessageSquare, Save } from "lucide-react";
-import { Document } from "@/pages/Index";
+import { Document } from "@/types/document";
 import AIAssistant from "@/components/AIAssistant";
 
 interface DocumentReviewProps {

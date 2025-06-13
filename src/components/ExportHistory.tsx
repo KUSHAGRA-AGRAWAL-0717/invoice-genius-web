@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { History, Download, Eye, Calendar, FileText } from "lucide-react";
 
 interface ExportHistoryProps {
+  exportHistory: any[];
   onBack: () => void;
 }
 
@@ -27,121 +27,11 @@ interface ExportRecord {
   status: 'completed' | 'failed';
 }
 
-const ExportHistory = ({ onBack }: ExportHistoryProps) => {
+const ExportHistory = ({ exportHistory, onBack }: ExportHistoryProps) => {
   const [selectedExport, setSelectedExport] = useState<ExportRecord | null>(null);
   const [filterFormat, setFilterFormat] = useState<string>('all');
 
   // Mock export history data
-  const exportHistory: ExportRecord[] = [
-    {
-      id: "exp-001",
-      exportDate: "2024-06-12T10:30:00Z",
-      format: "excel",
-      documentCount: 5,
-      status: "completed",
-      documents: [
-        {
-          id: "doc-001",
-          name: "Invoice_ABC_2024.pdf",
-          templateType: "Invoice",
-          invoiceNumber: "INV-1001",
-          vendorName: "ABC Corp",
-          amount: "1,250.00"
-        },
-        {
-          id: "doc-002",
-          name: "Utility_Bill_March.pdf",
-          templateType: "Utility Bill",
-          invoiceNumber: "UB-3456",
-          vendorName: "Power Company",
-          amount: "340.50"
-        },
-        {
-          id: "doc-003",
-          name: "Service_Invoice_2024.pdf",
-          templateType: "Invoice",
-          invoiceNumber: "INV-2001",
-          vendorName: "Service Provider",
-          amount: "890.75"
-        },
-        {
-          id: "doc-004",
-          name: "Office_Supplies.pdf",
-          templateType: "Purchase Order",
-          invoiceNumber: "PO-5678",
-          vendorName: "Office Depot",
-          amount: "123.99"
-        },
-        {
-          id: "doc-005",
-          name: "Consulting_Fee.pdf",
-          templateType: "Invoice",
-          invoiceNumber: "INV-3001",
-          vendorName: "Consulting Group",
-          amount: "2,500.00"
-        }
-      ]
-    },
-    {
-      id: "exp-002",
-      exportDate: "2024-06-11T14:15:00Z",
-      format: "csv",
-      documentCount: 3,
-      status: "completed",
-      documents: [
-        {
-          id: "doc-006",
-          name: "Monthly_Rent.pdf",
-          templateType: "Invoice",
-          invoiceNumber: "RENT-0624",
-          vendorName: "Property Management",
-          amount: "3,200.00"
-        },
-        {
-          id: "doc-007",
-          name: "Insurance_Premium.pdf",
-          templateType: "Bill",
-          invoiceNumber: "INS-7890",
-          vendorName: "Insurance Co",
-          amount: "456.78"
-        },
-        {
-          id: "doc-008",
-          name: "Software_License.pdf",
-          templateType: "Invoice",
-          invoiceNumber: "SW-1234",
-          vendorName: "Tech Solutions",
-          amount: "1,800.00"
-        }
-      ]
-    },
-    {
-      id: "exp-003",
-      exportDate: "2024-06-10T09:45:00Z",
-      format: "json",
-      documentCount: 2,
-      status: "completed",
-      documents: [
-        {
-          id: "doc-009",
-          name: "Travel_Expense.pdf",
-          templateType: "Expense Report",
-          invoiceNumber: "EXP-9876",
-          vendorName: "Travel Agency",
-          amount: "675.25"
-        },
-        {
-          id: "doc-010",
-          name: "Equipment_Purchase.pdf",
-          templateType: "Purchase Order",
-          invoiceNumber: "PO-5432",
-          vendorName: "Equipment Supplier",
-          amount: "4,300.00"
-        }
-      ]
-    }
-  ];
-
   const filteredHistory = filterFormat === 'all' 
     ? exportHistory 
     : exportHistory.filter(exp => exp.format === filterFormat);
