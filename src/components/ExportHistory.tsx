@@ -1,233 +1,88 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { History, Download, Eye, Calendar, FileText } from "lucide-react";
+import { Download, Calendar } from "lucide-react";
 
 interface ExportHistoryProps {
-  exportHistory: any[];
+  exportHistory: Array<{
+    date: string;
+    documents: string[];
+    exportData: any[];
+  }>;
   onBack: () => void;
 }
 
-interface ExportRecord {
-  id: string;
-  exportDate: string;
-  format: string;
-  documentCount: number;
-  documents: {
-    id: string;
-    name: string;
-    templateType: string;
-    invoiceNumber: string;
-    vendorName: string;
-    amount: string;
-  }[];
-  status: 'completed' | 'failed';
-}
-
 const ExportHistory = ({ exportHistory, onBack }: ExportHistoryProps) => {
-  const [selectedExport, setSelectedExport] = useState<ExportRecord | null>(null);
-  const [filterFormat, setFilterFormat] = useState<string>('all');
-
-  // Mock export history data
-  const filteredHistory = filterFormat === 'all' 
-    ? exportHistory 
-    : exportHistory.filter(exp => exp.format === filterFormat);
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
+  const handleDownload = (exportData: any[], date: string) => {
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: 'application/json'
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `export_${date}.json`;
+    a.click();
   };
-
-  const getFormatBadge = (format: string) => {
-    const formatColors = {
-      excel: "bg-green-100 text-green-800",
-      csv: "bg-blue-100 text-blue-800",
-      json: "bg-purple-100 text-purple-800",
-      xml: "bg-orange-100 text-orange-800"
-    };
-    
-    return (
-      <Badge className={formatColors[format as keyof typeof formatColors] || "bg-gray-100 text-gray-800"}>
-        {format.toUpperCase()}
-      </Badge>
-    );
-  };
-
-  const calculateTotalAmount = (documents: ExportRecord['documents']) => {
-    return documents.reduce((total, doc) => {
-      return total + parseFloat(doc.amount.replace(/,/g, ''));
-    }, 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
-  };
-
-  if (selectedExport) {
-    return (
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <Button variant="outline" onClick={() => setSelectedExport(null)}>← Back to History</Button>
-            <div>
-              <CardTitle>Export Details</CardTitle>
-              <CardDescription>
-                Export #{selectedExport.id} - {formatDate(selectedExport.exportDate)}
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-accent/50 p-4 rounded-lg">
-              <div className="text-sm text-muted-foreground">Format</div>
-              <div className="font-semibold">{getFormatBadge(selectedExport.format)}</div>
-            </div>
-            <div className="bg-accent/50 p-4 rounded-lg">
-              <div className="text-sm text-muted-foreground">Documents</div>
-              <div className="font-semibold">{selectedExport.documentCount}</div>
-            </div>
-            <div className="bg-accent/50 p-4 rounded-lg">
-              <div className="text-sm text-muted-foreground">Total Amount</div>
-              <div className="font-semibold">${calculateTotalAmount(selectedExport.documents)}</div>
-            </div>
-            <div className="bg-accent/50 p-4 rounded-lg">
-              <div className="text-sm text-muted-foreground">Status</div>
-              <div className="font-semibold">
-                <Badge className="bg-green-100 text-green-800">
-                  {selectedExport.status}
-                </Badge>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Exported Documents</h3>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Document Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Invoice Number</TableHead>
-                  <TableHead>Vendor</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {selectedExport.documents.map((doc) => (
-                  <TableRow key={doc.id}>
-                    <TableCell className="font-medium">{doc.name}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{doc.templateType}</Badge>
-                    </TableCell>
-                    <TableCell>{doc.invoiceNumber}</TableCell>
-                    <TableCell>{doc.vendorName}</TableCell>
-                    <TableCell className="text-right">${doc.amount}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          <div className="flex justify-end">
-            <Button variant="outline">
-              <Download className="h-4 w-4 mr-2" />
-              Re-download Export
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
-    <Card>
+    <Card className="max-w-4xl mx-auto">
       <CardHeader>
         <div className="flex items-center gap-4">
           <Button variant="outline" onClick={onBack}>← Back</Button>
           <div>
             <CardTitle>Export History</CardTitle>
-            <CardDescription>
-              View and manage your document export history
-            </CardDescription>
+            <p className="text-sm text-muted-foreground">View and download previous exports</p>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <History className="h-4 w-4" />
-            <Select value={filterFormat} onValueChange={setFilterFormat}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by format" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Formats</SelectItem>
-                <SelectItem value="excel">Excel</SelectItem>
-                <SelectItem value="csv">CSV</SelectItem>
-                <SelectItem value="json">JSON</SelectItem>
-                <SelectItem value="xml">XML</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {filteredHistory.length === 0 ? (
-          <div className="text-center py-12 bg-accent/50 rounded-lg">
-            <History className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-medium mb-2">No export history</h3>
-            <p className="text-muted-foreground">
-              Export some documents to see your history here
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredHistory.map((exportRecord) => (
-              <div
-                key={exportRecord.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h4 className="font-medium">Export #{exportRecord.id}</h4>
-                    {getFormatBadge(exportRecord.format)}
-                    <Badge className="bg-green-100 text-green-800">
-                      {exportRecord.status}
-                    </Badge>
-                  </div>
-                  <div className="text-sm text-muted-foreground space-y-1">
-                    <div className="flex items-center gap-4">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {formatDate(exportRecord.exportDate)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <FileText className="h-3 w-3" />
-                        {exportRecord.documentCount} documents
-                      </span>
-                      <span>
-                        Total: ${calculateTotalAmount(exportRecord.documents)}
-                      </span>
+      <CardContent>
+        <div className="space-y-4">
+          {exportHistory.length === 0 ? (
+            <div className="text-center py-8">
+              <Calendar className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-4 text-lg font-medium">No exports yet</h3>
+              <p className="text-gray-500">Your export history will appear here</p>
+            </div>
+          ) : (
+            exportHistory.map((export_, index) => (
+              <Card key={index} className="border border-gray-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium">Export from {export_.date}</h4>
+                      <p className="text-sm text-gray-500">
+                        {export_.documents.length} documents exported
+                      </p>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {export_.documents.slice(0, 3).map((docName, i) => (
+                          <Badge key={i} variant="outline" className="text-xs">
+                            {docName}
+                          </Badge>
+                        ))}
+                        {export_.documents.length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{export_.documents.length - 3} more
+                          </Badge>
+                        )}
+                      </div>
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDownload(export_.exportData, export_.date)}
+                      className="flex items-center gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download
+                    </Button>
                   </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setSelectedExport(exportRecord)}
-                  >
-                    <Eye className="h-4 w-4 mr-1" />
-                    View Details
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-1" />
-                    Download
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
       </CardContent>
     </Card>
   );
