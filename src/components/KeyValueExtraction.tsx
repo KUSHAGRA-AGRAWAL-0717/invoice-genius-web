@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,20 @@ interface KeyValueExtractionProps {
 
 const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractionProps) => {
   const { toast } = useToast();
-  const [extractedData, setExtractedData] = useState(document.ocrData || {});
+  
+  // Provide proper default structure for ocrData
+  const defaultOcrData = {
+    invoice_number: '',
+    vendor_name: '',
+    invoice_date: '',
+    due_date: '',
+    total_amount: '',
+    subtotal: '',
+    tax_amount: '',
+    line_items: []
+  };
+
+  const [extractedData, setExtractedData] = useState(document.ocrData || defaultOcrData);
   const [extraFields, setExtraFields] = useState<Array<{id: string, key: string, value: string}>>([]);
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
