@@ -1,7 +1,8 @@
 
 import { useState } from "react";
 import DocumentUpload from "@/components/DocumentUpload";
-import DocumentReview from "@/components/DocumentReview";
+import TemplateSelection from "@/components/TemplateSelection";
+import KeyValueExtraction from "@/components/KeyValueExtraction";
 import ExportInterface from "@/components/ExportInterface";
 import ExportHistory from "@/components/ExportHistory";
 import AIAssistant from "@/components/AIAssistant";
@@ -12,7 +13,7 @@ import TemplateSelector from "@/components/TemplateSelector";
 import { Document } from "@/types/document";
 
 const Index = () => {
-  const [activeView, setActiveView] = useState<'dashboard' | 'upload' | 'review' | 'export' | 'history' | 'templates' | 'assistant'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'upload' | 'template-selection' | 'key-value-extraction' | 'export' | 'history' | 'templates' | 'assistant'>('dashboard');
   const [documents, setDocuments] = useState<Document[]>([]);
   const [currentDocument, setCurrentDocument] = useState<Document | null>(null);
   const [exportHistory, setExportHistory] = useState<any[]>([]);
@@ -27,6 +28,25 @@ const Index = () => {
 
   const handleShowAssistant = () => {
     setActiveView('assistant');
+  };
+
+  const handleDocumentUpload = (doc: Document) => {
+    setCurrentDocument(doc);
+    setActiveView('template-selection');
+  };
+
+  const handleTemplateSelected = (templateType: string) => {
+    if (currentDocument) {
+      const updatedDoc = { ...currentDocument, templateType };
+      setCurrentDocument(updatedDoc);
+      setActiveView('key-value-extraction');
+    }
+  };
+
+  const handleDataSaved = (doc: Document) => {
+    setDocuments(prev => [...prev, doc]);
+    setCurrentDocument(null);
+    setActiveView('dashboard');
   };
 
   return (
@@ -134,22 +154,23 @@ const Index = () => {
         {activeView === 'upload' && (
           <DocumentUpload 
             onBack={() => setActiveView('dashboard')}
-            onDocumentUpload={(doc) => {
-              setDocuments(prev => [...prev, doc]);
-              setActiveView('review');
-              setCurrentDocument(doc);
-            }}
+            onDocumentUpload={handleDocumentUpload}
           />
         )}
 
-        {activeView === 'review' && currentDocument && (
-          <DocumentReview 
+        {activeView === 'template-selection' && currentDocument && (
+          <TemplateSelection 
             document={currentDocument}
-            onBack={() => setActiveView('dashboard')}
-            onDocumentUpdate={(doc) => {
-              setDocuments(prev => prev.map(d => d.id === doc.id ? doc : d));
-              setActiveView('dashboard');
-            }}
+            onBack={() => setActiveView('upload')}
+            onTemplateSelected={handleTemplateSelected}
+          />
+        )}
+
+        {activeView === 'key-value-extraction' && currentDocument && (
+          <KeyValueExtraction 
+            document={currentDocument}
+            onBack={() => setActiveView('template-selection')}
+            onDataSaved={handleDataSaved}
           />
         )}
 
