@@ -12,6 +12,7 @@ interface Template {
   description: string;
   fields: string[];
   isCustom?: boolean;
+  templateData?: any; // Store the actual field values
 }
 
 interface TemplateSelectorProps {
@@ -22,6 +23,7 @@ interface TemplateSelectorProps {
 const TemplateSelector = ({ onBack, onTemplateCreated }: TemplateSelectorProps) => {
   const [selectedView, setSelectedView] = useState<'list' | 'create' | 'edit'>('list');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [selectedTemplateData, setSelectedTemplateData] = useState<Template | null>(null);
 
   const defaultTemplates: Template[] = [
     {
@@ -66,17 +68,28 @@ const TemplateSelector = ({ onBack, onTemplateCreated }: TemplateSelectorProps) 
 
   const handleCreateNew = () => {
     setSelectedTemplate('register-basic');
+    setSelectedTemplateData(null);
     setSelectedView('create');
   };
 
   const handleEditTemplate = (templateId: string) => {
+    const template = allTemplates.find(t => t.id === templateId);
     setSelectedTemplate(templateId);
+    setSelectedTemplateData(template || null);
     setSelectedView('edit');
+  };
+
+  const handleUseTemplate = (templateId: string) => {
+    const template = allTemplates.find(t => t.id === templateId);
+    setSelectedTemplate(templateId);
+    setSelectedTemplateData(template || null);
+    setSelectedView('create');
   };
 
   const handleBackToList = () => {
     setSelectedView('list');
     setSelectedTemplate('');
+    setSelectedTemplateData(null);
   };
 
   const handleTemplateSaved = (templateData: any, templateFields: string[]) => {
@@ -87,7 +100,8 @@ const TemplateSelector = ({ onBack, onTemplateCreated }: TemplateSelectorProps) 
         name: `Custom Template - ${new Date().toLocaleDateString()}`,
         description: `Custom template with ${templateFields.length} fields`,
         fields: templateFields,
-        isCustom: true
+        isCustom: true,
+        templateData: templateData // Store the actual values
       };
       saveCustomTemplate(newTemplate);
     }
@@ -99,6 +113,7 @@ const TemplateSelector = ({ onBack, onTemplateCreated }: TemplateSelectorProps) 
       <TemplateFormCreator 
         onBack={handleBackToList}
         templateType={selectedTemplate}
+        templateData={selectedTemplateData}
         isEditing={selectedView === 'edit'}
         onTemplateSaved={handleTemplateSaved}
       />
@@ -164,10 +179,7 @@ const TemplateSelector = ({ onBack, onTemplateCreated }: TemplateSelectorProps) 
                         </Button>
                         <Button 
                           size="sm"
-                          onClick={() => {
-                            setSelectedTemplate(template.id);
-                            setSelectedView('create');
-                          }}
+                          onClick={() => handleUseTemplate(template.id)}
                           className="bg-blue-600 hover:bg-blue-700"
                         >
                           Use Template
@@ -232,10 +244,7 @@ const TemplateSelector = ({ onBack, onTemplateCreated }: TemplateSelectorProps) 
                           </Button>
                           <Button 
                             size="sm"
-                            onClick={() => {
-                              setSelectedTemplate(template.id);
-                              setSelectedView('create');
-                            }}
+                            onClick={() => handleUseTemplate(template.id)}
                             className="bg-green-600 hover:bg-green-700"
                           >
                             Use Template

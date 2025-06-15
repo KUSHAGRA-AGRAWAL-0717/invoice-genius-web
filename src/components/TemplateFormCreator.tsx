@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,14 +12,24 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
+interface Template {
+  id: string;
+  name: string;
+  description: string;
+  fields: string[];
+  isCustom?: boolean;
+  templateData?: any;
+}
+
 interface TemplateFormCreatorProps {
   onBack: () => void;
   templateType?: string;
+  templateData?: Template | null;
   isEditing?: boolean;
   onTemplateSaved?: (templateData: any, templateFields: string[]) => void;
 }
 
-const TemplateFormCreator = ({ onBack, templateType = 'register-basic', isEditing = false, onTemplateSaved }: TemplateFormCreatorProps) => {
+const TemplateFormCreator = ({ onBack, templateType = 'register-basic', templateData, isEditing = false, onTemplateSaved }: TemplateFormCreatorProps) => {
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
@@ -35,6 +46,35 @@ const TemplateFormCreator = ({ onBack, templateType = 'register-basic', isEditin
   const [extraFields, setExtraFields] = useState<Array<{id: string, key: string, value: string}>>([]);
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
+
+  // Load template data if available
+  useEffect(() => {
+    if (templateData && templateData.templateData) {
+      const data = templateData.templateData;
+      
+      // Set form data
+      setFormData({
+        supplier: data.supplier || "",
+        party: data.party || "",
+        billNumber: data.billNumber || "",
+        registerDate: data.registerDate ? new Date(data.registerDate) : null,
+        amount: data.amount || "",
+        gstPercentage: data.gstPercentage || ""
+      });
+
+      // Set extra fields
+      const templateFields = getTemplateFields();
+      const extraFieldsFromTemplate = Object.entries(data)
+        .filter(([key]) => !templateFields.includes(key))
+        .map(([key, value], index) => ({
+          id: `loaded-${index}`,
+          key,
+          value: String(value)
+        }));
+      
+      setExtraFields(extraFieldsFromTemplate);
+    }
+  }, [templateData, templateType]);
 
   // Mock data for dropdowns
   const suppliers = [
