@@ -37,6 +37,27 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
 
+  const saveCustomTemplate = (templateFields: string[]) => {
+    try {
+      const existingTemplates = JSON.parse(localStorage.getItem('customTemplates') || '[]');
+      const newTemplate = {
+        id: `custom-${Date.now()}`,
+        name: `Custom Template - ${document.name}`,
+        description: `Custom template with ${templateFields.length} fields created from ${document.name}`,
+        fields: templateFields,
+        isCustom: true
+      };
+      
+      const updatedTemplates = [...existingTemplates, newTemplate];
+      localStorage.setItem('customTemplates', JSON.stringify(updatedTemplates));
+      
+      return newTemplate;
+    } catch (error) {
+      console.error('Error saving custom template:', error);
+      return null;
+    }
+  };
+
   const handleExtractedDataChange = (key: string, value: string) => {
     setExtractedData(prev => ({
       ...prev,
@@ -72,6 +93,21 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
     extraFields.forEach(field => {
       combinedData[field.key] = field.value;
     });
+
+    // If we have extra fields, save as custom template
+    if (extraFields.length > 0) {
+      const templateFields = getTemplateFields();
+      const extraFieldKeys = extraFields.map(field => field.key);
+      const allFields = [...templateFields, ...extraFieldKeys];
+      
+      const savedTemplate = saveCustomTemplate(allFields);
+      if (savedTemplate) {
+        toast({
+          title: "Template Saved!",
+          description: `Custom template "${savedTemplate.name}" has been saved and can be reused.`,
+        });
+      }
+    }
 
     const updatedDocument: Document = {
       ...document,

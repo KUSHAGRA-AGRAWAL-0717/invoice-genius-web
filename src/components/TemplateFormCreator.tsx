@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,14 +9,18 @@ import { CalendarIcon, Search } from "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface TemplateFormCreatorProps {
   onBack: () => void;
   templateType?: string;
   isEditing?: boolean;
+  onTemplateSaved?: (templateData: any, templateFields: string[]) => void;
 }
 
-const TemplateFormCreator = ({ onBack, templateType = 'register-basic', isEditing = false }: TemplateFormCreatorProps) => {
+const TemplateFormCreator = ({ onBack, templateType = 'register-basic', isEditing = false, onTemplateSaved }: TemplateFormCreatorProps) => {
+  const { toast } = useToast();
+  
   const [formData, setFormData] = useState({
     supplier: "",
     party: "",
@@ -29,6 +32,9 @@ const TemplateFormCreator = ({ onBack, templateType = 'register-basic', isEditin
 
   const [supplierOpen, setSupplierOpen] = useState(false);
   const [partyOpen, setPartyOpen] = useState(false);
+  const [extraFields, setExtraFields] = useState<Array<{id: string, key: string, value: string}>>([]);
+  const [newKey, setNewKey] = useState('');
+  const [newValue, setNewValue] = useState('');
 
   // Mock data for dropdowns
   const suppliers = [
@@ -47,6 +53,28 @@ const TemplateFormCreator = ({ onBack, templateType = 'register-basic', isEditin
 
   const isGSTTemplate = templateType === 'register-gst';
 
+  const handleAddExtraField = () => {
+    if (newKey.trim() && newValue.trim()) {
+      setExtraFields(prev => [...prev, {
+        id: Date.now().toString(),
+        key: newKey.trim(),
+        value: newValue.trim()
+      }]);
+      setNewKey('');
+      setNewValue('');
+    }
+  };
+
+  const handleRemoveExtraField = (id: string) => {
+    setExtraFields(prev => prev.filter(field => field.id !== id));
+  };
+
+  const handleUpdateExtraField = (id: string, key: string, value: string) => {
+    setExtraFields(prev => prev.map(field => 
+      field.id === id ? { ...field, key, value } : field
+    ));
+  };
+
   const handleReset = () => {
     setFormData({
       supplier: "",
@@ -56,16 +84,55 @@ const TemplateFormCreator = ({ onBack, templateType = 'register-basic', isEditin
       amount: "",
       gstPercentage: ""
     });
+    setExtraFields([]);
   };
 
   const handleSaveDraft = () => {
     console.log("Draft saved:", formData);
-    // Add toast notification here
+    toast({
+      title: "Draft Saved",
+      description: "Your template draft has been saved locally.",
+    });
   };
 
   const handleSubmit = () => {
-    console.log("Register entry submitted:", formData);
-    // Add validation and submission logic here
+    // Combine template fields with extra fields
+    const templateFields = getTemplateFields();
+    const extraFieldKeys = extraFields.map(field => field.key);
+    const allFields = [...templateFields, ...extraFieldKeys];
+    
+    // Combine all data
+    const combinedData = { ...formData };
+    extraFields.forEach(field => {
+      combinedData[field.key] = field.value;
+    });
+
+    console.log("Register entry submitted:", combinedData);
+    
+    // Save as new template if we have extra fields
+    if (extraFields.length > 0 && onTemplateSaved) {
+      onTemplateSaved(combinedData, allFields);
+      toast({
+        title: "Template Saved!",
+        description: "Your custom template has been saved and can be reused.",
+      });
+    } else {
+      toast({
+        title: "Data Submitted!",
+        description: "Your register entry has been submitted successfully.",
+      });
+    }
+  };
+
+  const getTemplateFields = () => {
+    switch (templateType) {
+      case 'register-basic':
+        return ['supplier', 'party', 'billNumber', 'registerDate', 'amount'];
+      case 'register-gst':
+        return ['supplier', 'party', 'billNumber', 'registerDate', 'amount', 'gstPercentage'];
+      default:
+        return ['supplier', 'party', 'billNumber', 'registerDate', 'amount'];
+    }
   };
 
   // Keyboard shortcuts
@@ -277,6 +344,72 @@ const TemplateFormCreator = ({ onBack, templateType = 'register-basic', isEditin
                   )}
                 </div>
 
+                {/* Extra Fields Section */}
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-semibold mb-4">Add Custom Fields</h3>
+                  
+                  {/* Add New Field */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="newKey">Field Name</Label>
+                      <Input
+                        id="newKey"
+                        value={newKey}
+                        onChange={(e) => setNewKey(e.target.value)}
+                        placeholder="Enter field name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="newValue">Field Value</Label>
+                      <Input
+                        id="newValue"
+                        value={newValue}
+                        onChange={(e) => setNewValue(e.target.value)}
+                        placeholder="Enter field value"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>&nbsp;</Label>
+                      <Button 
+                        onClick={handleAddExtraField}
+                        disabled={!newKey.trim() || !newValue.trim()}
+                        className="w-full"
+                      >
+                        Add Field
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Display Extra Fields */}
+                  {extraFields.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="font-medium">Custom Fields:</h4>
+                      {extraFields.map((field) => (
+                        <div key={field.id} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-3 bg-gray-50 rounded-lg">
+                          <Input
+                            value={field.key}
+                            onChange={(e) => handleUpdateExtraField(field.id, e.target.value, field.value)}
+                            placeholder="Field name"
+                          />
+                          <Input
+                            value={field.value}
+                            onChange={(e) => handleUpdateExtraField(field.id, field.key, e.target.value)}
+                            placeholder="Field value"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRemoveExtraField(field.id)}
+                            className="w-full"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-3 pt-4">
                   <Button
@@ -300,7 +433,8 @@ const TemplateFormCreator = ({ onBack, templateType = 'register-basic', isEditin
                     onClick={handleSubmit}
                     className="flex-1 bg-blue-600 hover:bg-blue-700"
                   >
-                    {isEditing ? 'Update Template' : 'Submit Register Entry'} <span className="ml-2 text-xs text-blue-100">(Alt+S)</span>
+                    {extraFields.length > 0 ? 'Save as New Template' : (isEditing ? 'Update Template' : 'Submit Register Entry')} 
+                    <span className="ml-2 text-xs text-blue-100">(Alt+S)</span>
                   </Button>
                 </div>
               </div>
