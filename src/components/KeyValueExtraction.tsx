@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Save, FileText, Trash2, Eye, Database } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Save, FileText, Trash2, Eye, Database, Check, X, Template } from "lucide-react";
 import { Document } from "@/types/document";
 import ProgressIndicator from "./ProgressIndicator";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +17,18 @@ interface KeyValueExtractionProps {
   document: Document;
   onBack: () => void;
   onDataSaved: (document: Document) => void;
+}
+
+interface ExtraField {
+  id: string;
+  key: string;
+  value: string;
+  type: 'text' | 'number' | 'date' | 'email' | 'url';
+  approved: boolean;
+}
+
+interface FieldApproval {
+  [key: string]: boolean;
 }
 
 const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractionProps) => {
@@ -33,9 +47,11 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
   };
 
   const [extractedData, setExtractedData] = useState(document.ocrData || defaultOcrData);
-  const [extraFields, setExtraFields] = useState<Array<{id: string, key: string, value: string}>>([]);
+  const [extraFields, setExtraFields] = useState<ExtraField[]>([]);
+  const [fieldApprovals, setFieldApprovals] = useState<FieldApproval>({});
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
+  const [newFieldType, setNewFieldType] = useState<'text' | 'number' | 'date' | 'email' | 'url'>('text');
 
   const saveCustomTemplate = (templateFields: string[]) => {
     try {
@@ -45,7 +61,8 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
         name: `Custom Template - ${document.name}`,
         description: `Custom template with ${templateFields.length} fields created from ${document.name}`,
         fields: templateFields,
-        isCustom: true
+        isCustom: true,
+        templateData: { ...extractedData }
       };
       
       const updatedTemplates = [...existingTemplates, newTemplate];
@@ -65,15 +82,25 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
     }));
   };
 
+  const handleFieldApproval = (fieldKey: string, approved: boolean) => {
+    setFieldApprovals(prev => ({
+      ...prev,
+      [fieldKey]: approved
+    }));
+  };
+
   const handleAddExtraField = () => {
     if (newKey.trim() && newValue.trim()) {
       setExtraFields(prev => [...prev, {
         id: Date.now().toString(),
         key: newKey.trim(),
-        value: newValue.trim()
+        value: newValue.trim(),
+        type: newFieldType,
+        approved: false
       }]);
       setNewKey('');
       setNewValue('');
+      setNewFieldType('text');
     }
   };
 
@@ -81,33 +108,40 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
     setExtraFields(prev => prev.filter(field => field.id !== id));
   };
 
-  const handleUpdateExtraField = (id: string, key: string, value: string) => {
+  const handleUpdateExtraField = (id: string, key: string, value: string, type: string) => {
     setExtraFields(prev => prev.map(field => 
-      field.id === id ? { ...field, key, value } : field
+      field.id === id ? { ...field, key, value, type: type as any } : field
     ));
   };
 
-  const handleSave = () => {
-    // Combine extracted data with extra fields
-    const combinedData = { ...extractedData };
-    extraFields.forEach(field => {
-      combinedData[field.key] = field.value;
+  const handleExtraFieldApproval = (id: string, approved: boolean) => {
+    setExtraFields(prev => prev.map(field => 
+      field.id === id ? { ...field, approved } : field
+    ));
+  };
+
+  const handleSaveData = () => {
+    // Only include approved fields
+    const approvedData = { ...extractedData };
+    const approvedExtraFields: any = {};
+    
+    // Filter template fields by approval
+    getTemplateFields().forEach(field => {
+      if (fieldApprovals[field] !== false) { // Default to approved if not explicitly rejected
+        // Field is approved or not reviewed (default approved)
+      } else {
+        delete approvedData[field];
+      }
     });
 
-    // If we have extra fields, save as custom template
-    if (extraFields.length > 0) {
-      const templateFields = getTemplateFields();
-      const extraFieldKeys = extraFields.map(field => field.key);
-      const allFields = [...templateFields, ...extraFieldKeys];
-      
-      const savedTemplate = saveCustomTemplate(allFields);
-      if (savedTemplate) {
-        toast({
-          title: "Template Saved!",
-          description: `Custom template "${savedTemplate.name}" has been saved and can be reused.`,
-        });
+    // Add approved extra fields
+    extraFields.forEach(field => {
+      if (field.approved) {
+        approvedExtraFields[field.key] = field.value;
       }
-    }
+    });
+
+    const combinedData = { ...approvedData, ...approvedExtraFields };
 
     const updatedDocument: Document = {
       ...document,
@@ -121,6 +155,23 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
       title: "Success!",
       description: "Document data has been saved successfully.",
     });
+  };
+
+  const handleSaveAsTemplate = () => {
+    const templateFields = getTemplateFields();
+    const extraFieldKeys = extraFields.filter(field => field.approved).map(field => field.key);
+    const allFields = [...templateFields, ...extraFieldKeys];
+    
+    const savedTemplate = saveCustomTemplate(allFields);
+    if (savedTemplate) {
+      toast({
+        title: "Template Saved!",
+        description: `Custom template "${savedTemplate.name}" has been saved and can be reused.`,
+      });
+    }
+
+    // Also save the data
+    handleSaveData();
   };
 
   const getTemplateFields = () => {
@@ -146,6 +197,16 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
     return field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1');
   };
 
+  const getFieldTypeIcon = (type: string) => {
+    switch (type) {
+      case 'number': return '123';
+      case 'date': return '📅';
+      case 'email': return '📧';
+      case 'url': return '🔗';
+      default: return 'Aa';
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto">
       <ProgressIndicator currentStep={3} />
@@ -154,7 +215,7 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
         {/* Document Preview & OCR Data Panel */}
         <div className="lg:col-span-1">
           <div className="space-y-4">
-            {/* Document Preview */}
+            {/* Full Document Preview */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -163,16 +224,32 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <FileText className="h-8 w-8 text-blue-500" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{document.name}</p>
-                    <p className="text-xs text-gray-500">Template: {document.templateType}</p>
+                <div className="space-y-4">
+                  {/* Document Image/Preview Area */}
+                  <div className="aspect-[3/4] bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
+                    <div className="text-center p-4">
+                      <FileText className="h-16 w-16 text-gray-400 mx-auto mb-3" />
+                      <p className="text-sm font-medium text-gray-600">{document.name}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {document.type.toUpperCase()} Document
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Uploaded: {document.uploadDate}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="mt-4 p-3 bg-green-50 rounded-lg">
-                  <p className="text-xs text-green-600 font-medium">Status</p>
-                  <p className="text-sm text-gray-600 mt-1">Ready for data extraction</p>
+                  
+                  {/* Document Info */}
+                  <div className="space-y-2">
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                      <p className="text-xs text-blue-600 font-medium">Template</p>
+                      <p className="text-sm text-blue-800">{document.templateType}</p>
+                    </div>
+                    <div className="p-3 bg-green-50 rounded-lg">
+                      <p className="text-xs text-green-600 font-medium">Status</p>
+                      <p className="text-sm text-green-800">Ready for extraction</p>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -227,7 +304,7 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
                 <Button variant="outline" onClick={onBack}>← Back</Button>
                 <div>
                   <CardTitle>Extract & Edit Data</CardTitle>
-                  <p className="text-sm text-muted-foreground">Review template fields and add custom data</p>
+                  <p className="text-sm text-muted-foreground">Review, approve/reject fields and add custom data</p>
                 </div>
               </div>
             </CardHeader>
@@ -239,17 +316,37 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
                     <FileText className="h-5 w-5" />
                     Template Fields ({document.templateType})
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-4">
                     {getTemplateFields().map((field) => (
-                      <div key={field} className="space-y-2">
-                        <Label htmlFor={field}>{formatFieldName(field)}</Label>
-                        <Input
-                          id={field}
-                          value={extractedData[field] || ''}
-                          onChange={(e) => handleExtractedDataChange(field, e.target.value)}
-                          placeholder={`Enter ${formatFieldName(field).toLowerCase()}`}
-                          className="w-full"
-                        />
+                      <div key={field} className="flex items-center gap-4 p-4 border rounded-lg">
+                        <div className="flex-1 space-y-2">
+                          <Label htmlFor={field}>{formatFieldName(field)}</Label>
+                          <Input
+                            id={field}
+                            value={extractedData[field] || ''}
+                            onChange={(e) => handleExtractedDataChange(field, e.target.value)}
+                            placeholder={`Enter ${formatFieldName(field).toLowerCase()}`}
+                            className="w-full"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant={fieldApprovals[field] === true ? "default" : "outline"}
+                            onClick={() => handleFieldApproval(field, true)}
+                            className="text-green-600 border-green-600 hover:bg-green-50"
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={fieldApprovals[field] === false ? "default" : "outline"}
+                            onClick={() => handleFieldApproval(field, false)}
+                            className="text-red-600 border-red-600 hover:bg-red-50"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -265,17 +362,37 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
                         <Database className="h-5 w-5" />
                         Additional OCR Data
                       </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-4">
                         {getAllOcrFields().map((field) => (
-                          <div key={field} className="space-y-2">
-                            <Label htmlFor={field}>{formatFieldName(field)}</Label>
-                            <Input
-                              id={field}
-                              value={extractedData[field] || ''}
-                              onChange={(e) => handleExtractedDataChange(field, e.target.value)}
-                              placeholder={`Enter ${formatFieldName(field).toLowerCase()}`}
-                              className="w-full"
-                            />
+                          <div key={field} className="flex items-center gap-4 p-4 border rounded-lg">
+                            <div className="flex-1 space-y-2">
+                              <Label htmlFor={field}>{formatFieldName(field)}</Label>
+                              <Input
+                                id={field}
+                                value={extractedData[field] || ''}
+                                onChange={(e) => handleExtractedDataChange(field, e.target.value)}
+                                placeholder={`Enter ${formatFieldName(field).toLowerCase()}`}
+                                className="w-full"
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant={fieldApprovals[field] === true ? "default" : "outline"}
+                                onClick={() => handleFieldApproval(field, true)}
+                                className="text-green-600 border-green-600 hover:bg-green-50"
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={fieldApprovals[field] === false ? "default" : "outline"}
+                                onClick={() => handleFieldApproval(field, false)}
+                                className="text-red-600 border-red-600 hover:bg-red-50"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -284,7 +401,7 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
                   </>
                 )}
 
-                {/* Extra Fields Section */}
+                {/* Custom Fields Section */}
                 <div>
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     <Plus className="h-5 w-5" />
@@ -292,7 +409,7 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
                   </h3>
                   
                   {/* Add New Field */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
                     <div className="space-y-2">
                       <Label htmlFor="newKey">Field Name</Label>
                       <Input
@@ -303,12 +420,28 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
                       />
                     </div>
                     <div className="space-y-2">
+                      <Label htmlFor="newFieldType">Field Type</Label>
+                      <Select value={newFieldType} onValueChange={(value: any) => setNewFieldType(value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="text">Text</SelectItem>
+                          <SelectItem value="number">Number</SelectItem>
+                          <SelectItem value="date">Date</SelectItem>
+                          <SelectItem value="email">Email</SelectItem>
+                          <SelectItem value="url">URL</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
                       <Label htmlFor="newValue">Field Value</Label>
                       <Input
                         id="newValue"
                         value={newValue}
                         onChange={(e) => setNewValue(e.target.value)}
                         placeholder="Enter field value"
+                        type={newFieldType === 'number' ? 'number' : newFieldType === 'date' ? 'date' : newFieldType === 'email' ? 'email' : newFieldType === 'url' ? 'url' : 'text'}
                       />
                     </div>
                     <div className="space-y-2">
@@ -328,38 +461,87 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
                   {extraFields.length > 0 && (
                     <div className="space-y-3">
                       {extraFields.map((field) => (
-                        <div key={field.id} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-3 bg-gray-50 rounded-lg">
-                          <Input
-                            value={field.key}
-                            onChange={(e) => handleUpdateExtraField(field.id, e.target.value, field.value)}
-                            placeholder="Field name"
-                          />
-                          <Input
-                            value={field.value}
-                            onChange={(e) => handleUpdateExtraField(field.id, field.key, e.target.value)}
-                            placeholder="Field value"
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleRemoveExtraField(field.id)}
-                            className="w-full"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Remove
-                          </Button>
+                        <div key={field.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                          <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <Label>Field Name</Label>
+                              <Input
+                                value={field.key}
+                                onChange={(e) => handleUpdateExtraField(field.id, e.target.value, field.value, field.type)}
+                                placeholder="Field name"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Field Type</Label>
+                              <Select 
+                                value={field.type} 
+                                onValueChange={(value) => handleUpdateExtraField(field.id, field.key, field.value, value)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="text">Text</SelectItem>
+                                  <SelectItem value="number">Number</SelectItem>
+                                  <SelectItem value="date">Date</SelectItem>
+                                  <SelectItem value="email">Email</SelectItem>
+                                  <SelectItem value="url">URL</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Field Value</Label>
+                              <Input
+                                value={field.value}
+                                onChange={(e) => handleUpdateExtraField(field.id, field.key, e.target.value, field.type)}
+                                placeholder="Field value"
+                                type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'email' ? 'email' : field.type === 'url' ? 'url' : 'text'}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant={field.approved ? "default" : "outline"}
+                              onClick={() => handleExtraFieldApproval(field.id, true)}
+                              className="text-green-600 border-green-600 hover:bg-green-50"
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={!field.approved ? "default" : "outline"}
+                              onClick={() => handleExtraFieldApproval(field.id, false)}
+                              className="text-red-600 border-red-600 hover:bg-red-50"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRemoveExtraField(field.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
 
-                {/* Save Button */}
+                {/* Save Buttons */}
                 <div className="border-t pt-6">
-                  <Button onClick={handleSave} className="w-full bg-green-600 hover:bg-green-700 text-lg py-3">
-                    <Save className="mr-2 h-5 w-5" />
-                    Save Template Data
-                  </Button>
+                  <div className="flex gap-4">
+                    <Button onClick={handleSaveData} className="flex-1 bg-blue-600 hover:bg-blue-700 text-lg py-3">
+                      <Save className="mr-2 h-5 w-5" />
+                      Save Data
+                    </Button>
+                    <Button onClick={handleSaveAsTemplate} variant="outline" className="flex-1 text-lg py-3">
+                      <Template className="mr-2 h-5 w-5" />
+                      Save as New Template
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
