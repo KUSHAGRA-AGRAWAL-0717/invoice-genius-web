@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Save, FileText, Trash2, Eye, Database, Check, X, Template } from "lucide-react";
+import { Plus, Save, FileText, Trash2, Eye, Database, Check, X, FileSpreadsheet } from 'lucide-react';
 import { Document } from "@/types/document";
 import ProgressIndicator from "./ProgressIndicator";
 import { useToast } from "@/hooks/use-toast";
@@ -538,7 +538,7 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
                       Save Data
                     </Button>
                     <Button onClick={handleSaveAsTemplate} variant="outline" className="flex-1 text-lg py-3">
-                      <Template className="mr-2 h-5 w-5" />
+                      <FileSpreadsheet className="mr-2 h-5 w-5" />
                       Save as New Template
                     </Button>
                   </div>
@@ -553,3 +553,4 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
 };
 
 export default KeyValueExtraction;
+
