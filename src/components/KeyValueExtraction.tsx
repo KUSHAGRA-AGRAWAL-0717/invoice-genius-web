@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -212,103 +211,60 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
       <ProgressIndicator currentStep={3} />
       
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
-        {/* Document Preview & OCR Data Panel */}
+        {/* Document Preview Panel - Simplified */}
         <div className="lg:col-span-1">
-          <div className="space-y-4">
-            {/* Full Document Preview */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Eye className="h-5 w-5" />
-                  Document Preview
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Document Image/Preview Area */}
-                  <div className="aspect-[3/4] bg-gray-100 rounded-lg border overflow-hidden">
-                    {document.file ? (
-                      <img 
-                        src={URL.createObjectURL(document.file)} 
-                        alt={document.name}
-                        className="w-full h-full object-contain"
-                      />
-                    ) : document.preview ? (
-                      <img 
-                        src={document.preview} 
-                        alt={document.name}
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center border-2 border-dashed border-gray-300">
-                        <div className="text-center p-4">
-                          <FileText className="h-16 w-16 text-gray-400 mx-auto mb-3" />
-                          <p className="text-sm font-medium text-gray-600">{document.name}</p>
-                          <p className="text-xs text-gray-500 mt-1">No preview available</p>
-                        </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Eye className="h-5 w-5" />
+                Document Preview
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Document Image/Preview Area */}
+                <div className="aspect-[3/4] bg-gray-100 rounded-lg border overflow-hidden">
+                  {document.file ? (
+                    <img 
+                      src={URL.createObjectURL(document.file)} 
+                      alt={document.name}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : document.preview ? (
+                    <img 
+                      src={document.preview} 
+                      alt={document.name}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center border-2 border-dashed border-gray-300">
+                      <div className="text-center p-4">
+                        <FileText className="h-16 w-16 text-gray-400 mx-auto mb-3" />
+                        <p className="text-sm font-medium text-gray-600">{document.name}</p>
+                        <p className="text-xs text-gray-500 mt-1">No preview available</p>
                       </div>
-                    )}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Document Info */}
+                <div className="space-y-2">
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <p className="text-xs text-blue-600 font-medium">Document Name</p>
+                    <p className="text-sm text-blue-800 truncate">{document.name}</p>
                   </div>
-                  
-                  {/* Document Info */}
-                  <div className="space-y-2">
-                    <div className="p-3 bg-blue-50 rounded-lg">
-                      <p className="text-xs text-blue-600 font-medium">Document Name</p>
-                      <p className="text-sm text-blue-800 truncate">{document.name}</p>
-                    </div>
-                    <div className="p-3 bg-green-50 rounded-lg">
-                      <p className="text-xs text-green-600 font-medium">Template</p>
-                      <p className="text-sm text-green-800">{document.templateType}</p>
-                    </div>
-                    <div className="p-3 bg-purple-50 rounded-lg">
-                      <p className="text-xs text-purple-600 font-medium">Upload Date</p>
-                      <p className="text-sm text-purple-800">{document.uploadDate}</p>
-                    </div>
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <p className="text-xs text-green-600 font-medium">Template</p>
+                    <p className="text-sm text-green-800">{document.templateType}</p>
+                  </div>
+                  <div className="p-3 bg-purple-50 rounded-lg">
+                    <p className="text-xs text-purple-600 font-medium">Upload Date</p>
+                    <p className="text-sm text-purple-800">{document.uploadDate}</p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* All OCR Data */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Database className="h-5 w-5" />
-                  All OCR Data
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-96">
-                  <div className="space-y-3">
-                    {Object.entries(extractedData).map(([key, value]) => (
-                      <div key={key} className="p-2 bg-gray-50 rounded">
-                        <div className="text-xs font-medium text-gray-600 mb-1">
-                          {formatFieldName(key)}
-                        </div>
-                        <div className="text-sm text-gray-800 break-words">
-                          {Array.isArray(value) ? (
-                            <div className="space-y-1">
-                              {value.length > 0 ? (
-                                value.map((item, index) => (
-                                  <Badge key={index} variant="outline" className="text-xs mr-1">
-                                    {typeof item === 'object' ? JSON.stringify(item) : String(item)}
-                                  </Badge>
-                                ))
-                              ) : (
-                                <span className="text-gray-400 italic">No items</span>
-                              )}
-                            </div>
-                          ) : (
-                            value || <span className="text-gray-400 italic">Not extracted</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Key-Value Extraction Panel */}
