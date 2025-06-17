@@ -21,4 +21,6 @@ export interface Document {
     }>;
   };
   templateType: string;
+  file?: File;
+  preview?: string;
 }
