@@ -297,9 +297,9 @@ const KeyValueExtraction = ({
     <div className="max-w-7xl mx-auto">
       <ProgressIndicator currentStep={3} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
-        {/* Document Preview Panel - Only Image */}
-        <div className="lg:col-span-1">
+      <div className="flex flex-col lg:flex-row gap-6 mt-6">
+        {/* Document Preview Panel - Left Sidebar */}
+        <div className="w-full lg:w-1/2 h-auto lg:h-[80vh] overflow-y-auto flex flex-col">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -350,8 +350,8 @@ const KeyValueExtraction = ({
           </Card>
         </div>
 
-        {/* Key-Value Extraction Panel */}
-        <div className="lg:col-span-3">
+        {/* Key-Value Extraction Panel - Right Side */}
+        <div className="w-full lg:w-1/2 h-auto lg:h-[80vh] overflow-y-auto flex flex-col">
           <Card>
             <CardHeader>
               <div className="flex items-center gap-4">
@@ -677,31 +677,28 @@ const KeyValueExtraction = ({
                     </div>
                   )}
                 </div>
-
-                {/* Save Buttons */}
-                <div className="border-t pt-6">
-                  <div className="flex gap-4">
-                    <Button
-                      onClick={handleSaveData}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-lg py-3"
-                    >
-                      <Save className="mr-2 h-5 w-5" />
-                      Save Data
-                    </Button>
-                    <Button
-                      onClick={handleSaveAsTemplate}
-                      variant="outline"
-                      className="flex-1 text-lg py-3"
-                    >
-                      <FileSpreadsheet className="mr-2 h-5 w-5" />
-                      Save as New Template
-                    </Button>
-                  </div>
-                </div>
               </div>
             </CardContent>
           </Card>
         </div>
+      </div>
+      {/* Save Buttons below the flex row */}
+      <div className="flex gap-4 justify-center mt-6">
+        <Button
+          onClick={handleSaveData}
+          className="flex-1 max-w-xs bg-blue-600 hover:bg-blue-700 text-lg py-3"
+        >
+          <Save className="mr-2 h-5 w-5" />
+          Save Data
+        </Button>
+        <Button
+          onClick={handleSaveAsTemplate}
+          variant="outline"
+          className="flex-1 max-w-xs text-lg py-3"
+        >
+          <FileSpreadsheet className="mr-2 h-5 w-5" />
+          Save as New Template
+        </Button>
       </div>
     </div>
   );
