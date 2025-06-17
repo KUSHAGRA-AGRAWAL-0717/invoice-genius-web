@@ -52,6 +52,17 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
   const [newValue, setNewValue] = useState('');
   const [newFieldType, setNewFieldType] = useState<'text' | 'number' | 'date' | 'email' | 'url'>('text');
 
+  // Create object URL for uploaded file
+  const getDocumentImageUrl = () => {
+    if (document.file) {
+      return URL.createObjectURL(document.file);
+    }
+    if (document.preview) {
+      return document.preview;
+    }
+    return null;
+  };
+
   const saveCustomTemplate = (templateFields: string[]) => {
     try {
       const existingTemplates = JSON.parse(localStorage.getItem('customTemplates') || '[]');
@@ -224,17 +235,14 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
               <div className="space-y-4">
                 {/* Document Image/Preview Area */}
                 <div className="aspect-[3/4] bg-gray-100 rounded-lg border overflow-hidden">
-                  {document.file ? (
+                  {getDocumentImageUrl() ? (
                     <img 
-                      src={URL.createObjectURL(document.file)} 
+                      src={getDocumentImageUrl()!} 
                       alt={document.name}
                       className="w-full h-full object-contain"
-                    />
-                  ) : document.preview ? (
-                    <img 
-                      src={document.preview} 
-                      alt={document.name}
-                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        console.log('Image failed to load:', e);
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center border-2 border-dashed border-gray-300">
