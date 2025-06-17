@@ -226,28 +226,43 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
               <CardContent>
                 <div className="space-y-4">
                   {/* Document Image/Preview Area */}
-                  <div className="aspect-[3/4] bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
-                    <div className="text-center p-4">
-                      <FileText className="h-16 w-16 text-gray-400 mx-auto mb-3" />
-                      <p className="text-sm font-medium text-gray-600">{document.name}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {document.type.toUpperCase()} Document
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Uploaded: {document.uploadDate}
-                      </p>
-                    </div>
+                  <div className="aspect-[3/4] bg-gray-100 rounded-lg border overflow-hidden">
+                    {document.file ? (
+                      <img 
+                        src={URL.createObjectURL(document.file)} 
+                        alt={document.name}
+                        className="w-full h-full object-contain"
+                      />
+                    ) : document.preview ? (
+                      <img 
+                        src={document.preview} 
+                        alt={document.name}
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center border-2 border-dashed border-gray-300">
+                        <div className="text-center p-4">
+                          <FileText className="h-16 w-16 text-gray-400 mx-auto mb-3" />
+                          <p className="text-sm font-medium text-gray-600">{document.name}</p>
+                          <p className="text-xs text-gray-500 mt-1">No preview available</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   
                   {/* Document Info */}
                   <div className="space-y-2">
                     <div className="p-3 bg-blue-50 rounded-lg">
-                      <p className="text-xs text-blue-600 font-medium">Template</p>
-                      <p className="text-sm text-blue-800">{document.templateType}</p>
+                      <p className="text-xs text-blue-600 font-medium">Document Name</p>
+                      <p className="text-sm text-blue-800 truncate">{document.name}</p>
                     </div>
                     <div className="p-3 bg-green-50 rounded-lg">
-                      <p className="text-xs text-green-600 font-medium">Status</p>
-                      <p className="text-sm text-green-800">Ready for extraction</p>
+                      <p className="text-xs text-green-600 font-medium">Template</p>
+                      <p className="text-sm text-green-800">{document.templateType}</p>
+                    </div>
+                    <div className="p-3 bg-purple-50 rounded-lg">
+                      <p className="text-xs text-purple-600 font-medium">Upload Date</p>
+                      <p className="text-sm text-purple-800">{document.uploadDate}</p>
                     </div>
                   </div>
                 </div>
@@ -553,4 +568,3 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
 };
 
 export default KeyValueExtraction;
-
