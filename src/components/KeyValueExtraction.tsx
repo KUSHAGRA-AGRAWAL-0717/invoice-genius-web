@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,17 +51,26 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
   const [newFieldType, setNewFieldType] = useState<'text' | 'number' | 'date' | 'email' | 'url'>('text');
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
-  // Create object URL for uploaded file
-  const getDocumentImageUrl = () => {
+  // Create and manage object URL for uploaded file
+  useEffect(() => {
+    let url: string | null = null;
+    
     if (document.file) {
-      return URL.createObjectURL(document.file);
+      url = URL.createObjectURL(document.file);
+      setImageUrl(url);
+    } else if (document.preview) {
+      setImageUrl(document.preview);
     }
-    if (document.preview) {
-      return document.preview;
-    }
-    return null;
-  };
+
+    // Cleanup function to revoke object URL
+    return () => {
+      if (url) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, [document.file, document.preview]);
 
   const saveCustomTemplate = (templateFields: string[]) => {
     try {
@@ -222,54 +231,38 @@ const KeyValueExtraction = ({ document, onBack, onDataSaved }: KeyValueExtractio
       <ProgressIndicator currentStep={3} />
       
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
-        {/* Document Preview Panel - Simplified */}
+        {/* Document Preview Panel - Only Image */}
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Eye className="h-5 w-5" />
-                Document Preview
+                Document
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {/* Document Image/Preview Area */}
-                <div className="aspect-[3/4] bg-gray-100 rounded-lg border overflow-hidden">
-                  {getDocumentImageUrl() ? (
-                    <img 
-                      src={getDocumentImageUrl()!} 
-                      alt={document.name}
-                      className="w-full h-full object-contain"
-                      onError={(e) => {
-                        console.log('Image failed to load:', e);
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center border-2 border-dashed border-gray-300">
-                      <div className="text-center p-4">
-                        <FileText className="h-16 w-16 text-gray-400 mx-auto mb-3" />
-                        <p className="text-sm font-medium text-gray-600">{document.name}</p>
-                        <p className="text-xs text-gray-500 mt-1">No preview available</p>
-                      </div>
+              <div className="aspect-[3/4] bg-gray-50 rounded-lg border overflow-hidden">
+                {imageUrl ? (
+                  <img 
+                    src={imageUrl} 
+                    alt={document.name}
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      console.error('Image failed to load:', e);
+                      console.log('Image URL:', imageUrl);
+                      console.log('Document file:', document.file);
+                      console.log('Document preview:', document.preview);
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <div className="text-center p-4">
+                      <FileText className="h-16 w-16 text-gray-400 mx-auto mb-3" />
+                      <p className="text-sm font-medium text-gray-600">{document.name}</p>
+                      <p className="text-xs text-gray-500 mt-1">Loading document...</p>
                     </div>
-                  )}
-                </div>
-                
-                {/* Document Info */}
-                <div className="space-y-2">
-                  <div className="p-3 bg-blue-50 rounded-lg">
-                    <p className="text-xs text-blue-600 font-medium">Document Name</p>
-                    <p className="text-sm text-blue-800 truncate">{document.name}</p>
                   </div>
-                  <div className="p-3 bg-green-50 rounded-lg">
-                    <p className="text-xs text-green-600 font-medium">Template</p>
-                    <p className="text-sm text-green-800">{document.templateType}</p>
-                  </div>
-                  <div className="p-3 bg-purple-50 rounded-lg">
-                    <p className="text-xs text-purple-600 font-medium">Upload Date</p>
-                    <p className="text-sm text-purple-800">{document.uploadDate}</p>
-                  </div>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
