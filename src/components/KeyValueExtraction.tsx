@@ -23,6 +23,7 @@ import {
   Check,
   X,
   FileSpreadsheet,
+  CheckCircle,
 } from "lucide-react";
 import { Document } from "@/types/document";
 import ProgressIndicator from "./ProgressIndicator";
@@ -68,14 +69,11 @@ const KeyValueExtraction = ({
   const [extractedData, setExtractedData] = useState(
     document.ocrData || defaultOcrData
   );
-  const [extraFields, setExtraFields] = useState<ExtraField[]>([]);
   const [fieldApprovals, setFieldApprovals] = useState<FieldApproval>({});
-  const [newKey, setNewKey] = useState("");
-  const [newValue, setNewValue] = useState("");
-  const [newFieldType, setNewFieldType] = useState<
-    "text" | "number" | "date" | "email" | "url"
-  >("text");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [selectedTemplateFields, setSelectedTemplateFields] = useState<
+    string[]
+  >([]);
 
   // Create and manage object URL for uploaded file
   useEffect(() => {
@@ -99,6 +97,11 @@ const KeyValueExtraction = ({
       }
     };
   }, [document.file, document.preview]);
+
+  // Initialize selected template fields
+  useEffect(() => {
+    setSelectedTemplateFields(getTemplateFields());
+  }, [document.templateType]);
 
   const saveCustomTemplate = (templateFields: string[]) => {
     try {
@@ -136,76 +139,53 @@ const KeyValueExtraction = ({
       ...prev,
       [fieldKey]: approved,
     }));
-  };
 
-  const handleAddExtraField = () => {
-    if (newKey.trim() && newValue.trim()) {
-      setExtraFields((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          key: newKey.trim(),
-          value: newValue.trim(),
-          type: newFieldType,
-          approved: false,
-        },
-      ]);
-      setNewKey("");
-      setNewValue("");
-      setNewFieldType("text");
+    // If field is rejected, remove it from selected template fields
+    if (!approved) {
+      setSelectedTemplateFields((prev) =>
+        prev.filter((field) => field !== fieldKey)
+      );
+    } else {
+      // If field is approved and not in selected fields, add it back
+      setSelectedTemplateFields((prev) => {
+        if (!prev.includes(fieldKey)) {
+          return [...prev, fieldKey];
+        }
+        return prev;
+      });
     }
   };
 
-  const handleRemoveExtraField = (id: string) => {
-    setExtraFields((prev) => prev.filter((field) => field.id !== id));
-  };
+  const handleApproveAll = () => {
+    const allFields = getTemplateFields();
+    const newApprovals: FieldApproval = {};
+    allFields.forEach((field) => {
+      newApprovals[field] = true;
+    });
+    setFieldApprovals(newApprovals);
+    setSelectedTemplateFields(allFields);
 
-  const handleUpdateExtraField = (
-    id: string,
-    key: string,
-    value: string,
-    type: string
-  ) => {
-    setExtraFields((prev) =>
-      prev.map((field) =>
-        field.id === id ? { ...field, key, value, type: type as any } : field
-      )
-    );
-  };
-
-  const handleExtraFieldApproval = (id: string, approved: boolean) => {
-    setExtraFields((prev) =>
-      prev.map((field) => (field.id === id ? { ...field, approved } : field))
-    );
+    toast({
+      title: "All Fields Approved!",
+      description: "All template fields have been approved.",
+    });
   };
 
   const handleSaveData = () => {
     // Only include approved fields
     const approvedData = { ...extractedData };
-    const approvedExtraFields: any = {};
 
     // Filter template fields by approval
     getTemplateFields().forEach((field) => {
-      if (fieldApprovals[field] !== false) {
-        // Default to approved if not explicitly rejected
-        // Field is approved or not reviewed (default approved)
-      } else {
+      if (fieldApprovals[field] !== true) {
+        // Remove field if not explicitly approved
         delete approvedData[field];
       }
     });
 
-    // Add approved extra fields
-    extraFields.forEach((field) => {
-      if (field.approved) {
-        approvedExtraFields[field.key] = field.value;
-      }
-    });
-
-    const combinedData = { ...approvedData, ...approvedExtraFields };
-
     const updatedDocument: Document = {
       ...document,
-      ocrData: combinedData,
+      ocrData: approvedData,
       status: "ready_for_export",
     };
 
@@ -218,13 +198,11 @@ const KeyValueExtraction = ({
   };
 
   const handleSaveAsTemplate = () => {
-    const templateFields = getTemplateFields();
-    const extraFieldKeys = extraFields
-      .filter((field) => field.approved)
-      .map((field) => field.key);
-    const allFields = [...templateFields, ...extraFieldKeys];
+    const approvedFields = getTemplateFields().filter(
+      (field) => fieldApprovals[field] === true
+    );
 
-    const savedTemplate = saveCustomTemplate(allFields);
+    const savedTemplate = saveCustomTemplate(approvedFields);
     if (savedTemplate) {
       toast({
         title: "Template Saved!",
@@ -264,33 +242,10 @@ const KeyValueExtraction = ({
     }
   };
 
-  const getAllOcrFields = () => {
-    const templateFields = getTemplateFields();
-    const allFields = Object.keys(extractedData);
-    return allFields.filter(
-      (field) => !templateFields.includes(field) && field !== "line_items"
-    );
-  };
-
   const formatFieldName = (field: string) => {
     return (
       field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, " $1")
     );
-  };
-
-  const getFieldTypeIcon = (type: string) => {
-    switch (type) {
-      case "number":
-        return "123";
-      case "date":
-        return "📅";
-      case "email":
-        return "📧";
-      case "url":
-        return "🔗";
-      default:
-        return "Aa";
-    }
   };
 
   return (
@@ -370,312 +325,108 @@ const KeyValueExtraction = ({
               <div className="space-y-6">
                 {/* Template Fields Section */}
                 <div>
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Template Fields ({document.templateType})
-                  </h3>
-                  <div className="space-y-4">
-                    {getTemplateFields().map((field) => (
-                      <div
-                        key={field}
-                        className="flex items-center gap-4 p-4 border rounded-lg"
-                      >
-                        <div className="flex-1 space-y-2">
-                          <Label htmlFor={field}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Template Fields ({document.templateType})
+                    </h3>
+                    <Button
+                      onClick={handleApproveAll}
+                      variant="outline"
+                      size="sm"
+                      className="text-green-600 border-green-600 hover:bg-green-50"
+                    >
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Approve All
+                    </Button>
+                  </div>
+
+                  {/* Template Field Selection Dropdown */}
+                  <div className="mb-4">
+                    <Label htmlFor="templateFields">
+                      Select Fields to Display
+                    </Label>
+                    <Select
+                      value={selectedTemplateFields.join(",")}
+                      onValueChange={(value) => {
+                        const fields = value ? value.split(",") : [];
+                        setSelectedTemplateFields(fields);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select fields to display" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getTemplateFields().map((field) => (
+                          <SelectItem key={field} value={field}>
                             {formatFieldName(field)}
-                          </Label>
-                          <Input
-                            id={field}
-                            value={extractedData[field] || ""}
-                            onChange={(e) =>
-                              handleExtractedDataChange(field, e.target.value)
-                            }
-                            placeholder={`Enter ${formatFieldName(
-                              field
-                            ).toLowerCase()}`}
-                            className="w-full"
-                          />
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant={
-                              fieldApprovals[field] === true
-                                ? "default"
-                                : "outline"
-                            }
-                            onClick={() => handleFieldApproval(field, true)}
-                            className="text-green-600 border-green-600 hover:bg-green-50"
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={
-                              fieldApprovals[field] === false
-                                ? "default"
-                                : "outline"
-                            }
-                            onClick={() => handleFieldApproval(field, false)}
-                            className="text-red-600 border-red-600 hover:bg-red-50"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Other OCR Fields Section */}
-                {getAllOcrFields().length > 0 && (
-                  <>
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <Database className="h-5 w-5" />
-                        Additional OCR Data
-                      </h3>
-                      <div className="space-y-4">
-                        {getAllOcrFields().map((field) => (
-                          <div
-                            key={field}
-                            className="flex items-center gap-4 p-4 border rounded-lg"
-                          >
-                            <div className="flex-1 space-y-2">
-                              <Label htmlFor={field}>
-                                {formatFieldName(field)}
-                              </Label>
-                              <Input
-                                id={field}
-                                value={extractedData[field] || ""}
-                                onChange={(e) =>
-                                  handleExtractedDataChange(
-                                    field,
-                                    e.target.value
-                                  )
-                                }
-                                placeholder={`Enter ${formatFieldName(
-                                  field
-                                ).toLowerCase()}`}
-                                className="w-full"
-                              />
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant={
-                                  fieldApprovals[field] === true
-                                    ? "default"
-                                    : "outline"
-                                }
-                                onClick={() => handleFieldApproval(field, true)}
-                                className="text-green-600 border-green-600 hover:bg-green-50"
-                              >
-                                <Check className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant={
-                                  fieldApprovals[field] === false
-                                    ? "default"
-                                    : "outline"
-                                }
-                                onClick={() =>
-                                  handleFieldApproval(field, false)
-                                }
-                                className="text-red-600 border-red-600 hover:bg-red-50"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
+                          </SelectItem>
                         ))}
-                      </div>
-                    </div>
-                    <Separator />
-                  </>
-                )}
-
-                {/* Custom Fields Section */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Plus className="h-5 w-5" />
-                    Custom Fields
-                  </h3>
-
-                  {/* Add New Field */}
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="newKey">Field Name</Label>
-                      <Input
-                        id="newKey"
-                        value={newKey}
-                        onChange={(e) => setNewKey(e.target.value)}
-                        placeholder="Enter field name"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="newFieldType">Field Type</Label>
-                      <Select
-                        value={newFieldType}
-                        onValueChange={(value: any) => setNewFieldType(value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="text">Text</SelectItem>
-                          <SelectItem value="number">Number</SelectItem>
-                          <SelectItem value="date">Date</SelectItem>
-                          <SelectItem value="email">Email</SelectItem>
-                          <SelectItem value="url">URL</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="newValue">Field Value</Label>
-                      <Input
-                        id="newValue"
-                        value={newValue}
-                        onChange={(e) => setNewValue(e.target.value)}
-                        placeholder="Enter field value"
-                        type={
-                          newFieldType === "number"
-                            ? "number"
-                            : newFieldType === "date"
-                            ? "date"
-                            : newFieldType === "email"
-                            ? "email"
-                            : newFieldType === "url"
-                            ? "url"
-                            : "text"
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>&nbsp;</Label>
-                      <Button
-                        onClick={handleAddExtraField}
-                        disabled={!newKey.trim() || !newValue.trim()}
-                        className="w-full"
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Field
-                      </Button>
-                    </div>
+                      </SelectContent>
+                    </Select>
                   </div>
 
-                  {/* Display Extra Fields */}
-                  {extraFields.length > 0 && (
-                    <div className="space-y-3">
-                      {extraFields.map((field) => (
+                  <div className="space-y-4">
+                    {getTemplateFields()
+                      .filter((field) => selectedTemplateFields.includes(field))
+                      .map((field) => (
                         <div
-                          key={field.id}
-                          className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg"
+                          key={field}
+                          className="flex items-center gap-4 p-4 border rounded-lg"
                         >
-                          <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="space-y-2">
-                              <Label>Field Name</Label>
-                              <Input
-                                value={field.key}
-                                onChange={(e) =>
-                                  handleUpdateExtraField(
-                                    field.id,
-                                    e.target.value,
-                                    field.value,
-                                    field.type
-                                  )
-                                }
-                                placeholder="Field name"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Field Type</Label>
-                              <Select
-                                value={field.type}
-                                onValueChange={(value) =>
-                                  handleUpdateExtraField(
-                                    field.id,
-                                    field.key,
-                                    field.value,
-                                    value
-                                  )
-                                }
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="text">Text</SelectItem>
-                                  <SelectItem value="number">Number</SelectItem>
-                                  <SelectItem value="date">Date</SelectItem>
-                                  <SelectItem value="email">Email</SelectItem>
-                                  <SelectItem value="url">URL</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Field Value</Label>
-                              <Input
-                                value={field.value}
-                                onChange={(e) =>
-                                  handleUpdateExtraField(
-                                    field.id,
-                                    field.key,
-                                    e.target.value,
-                                    field.type
-                                  )
-                                }
-                                placeholder="Field value"
-                                type={
-                                  field.type === "number"
-                                    ? "number"
-                                    : field.type === "date"
-                                    ? "date"
-                                    : field.type === "email"
-                                    ? "email"
-                                    : field.type === "url"
-                                    ? "url"
-                                    : "text"
-                                }
-                              />
-                            </div>
+                          <div className="flex-1 space-y-2">
+                            <Label htmlFor={field}>
+                              {formatFieldName(field)}
+                            </Label>
+                            <Input
+                              id={field}
+                              value={extractedData[field] || ""}
+                              onChange={(e) =>
+                                handleExtractedDataChange(field, e.target.value)
+                              }
+                              placeholder={`Enter ${formatFieldName(
+                                field
+                              ).toLowerCase()}`}
+                              className="w-full"
+                            />
                           </div>
                           <div className="flex gap-2">
                             <Button
                               size="sm"
-                              variant={field.approved ? "default" : "outline"}
-                              onClick={() =>
-                                handleExtraFieldApproval(field.id, true)
+                              variant={
+                                fieldApprovals[field] === true
+                                  ? "default"
+                                  : "outline"
                               }
-                              className="text-green-600 border-green-600 hover:bg-green-50"
+                              onClick={() => handleFieldApproval(field, true)}
+                              className={
+                                fieldApprovals[field] === true
+                                  ? "bg-green-600 hover:bg-green-700 text-white"
+                                  : "text-green-600 border-green-600 hover:bg-green-50"
+                              }
                             >
                               <Check className="h-4 w-4" />
                             </Button>
                             <Button
                               size="sm"
-                              variant={!field.approved ? "default" : "outline"}
-                              onClick={() =>
-                                handleExtraFieldApproval(field.id, false)
+                              variant={
+                                fieldApprovals[field] === false
+                                  ? "default"
+                                  : "outline"
                               }
-                              className="text-red-600 border-red-600 hover:bg-red-50"
+                              onClick={() => handleFieldApproval(field, false)}
+                              className={
+                                fieldApprovals[field] === false
+                                  ? "bg-red-600 hover:bg-red-700 text-white"
+                                  : "text-red-600 border-red-600 hover:bg-red-50"
+                              }
                             >
                               <X className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleRemoveExtraField(field.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
                       ))}
-                    </div>
-                  )}
+                  </div>
                 </div>
               </div>
             </CardContent>
