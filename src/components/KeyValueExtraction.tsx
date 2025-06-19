@@ -24,10 +24,12 @@ import {
   X,
   FileSpreadsheet,
   CheckCircle,
+  Bot,
 } from "lucide-react";
 import { Document } from "@/types/document";
 import ProgressIndicator from "./ProgressIndicator";
 import { useToast } from "@/hooks/use-toast";
+import AIAssistant from "./AIAssistant";
 
 interface KeyValueExtractionProps {
   document: Document;
@@ -74,6 +76,7 @@ const KeyValueExtraction = ({
   const [selectedTemplateFields, setSelectedTemplateFields] = useState<
     string[]
   >([]);
+  const [showChat, setShowChat] = useState(false);
 
   // Create and manage object URL for uploaded file
   useEffect(() => {
@@ -249,8 +252,20 @@ const KeyValueExtraction = ({
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <ProgressIndicator currentStep={3} />
+    <div className="max-w-7xl mx-auto relative">
+      <ProgressIndicator
+        currentStep={3}
+        steps={[
+          { id: 1, name: "Upload", description: "Upload Document" },
+          { id: 2, name: "Template", description: "Choose Template" },
+          {
+            id: 3,
+            name: "Extract and save data",
+            description: "Extract and save data",
+          },
+          { id: 4, name: "Export", description: "Export your data" },
+        ]}
+      />
 
       <div className="flex flex-col lg:flex-row gap-6 mt-6">
         {/* Document Preview Panel - Left Sidebar */}
@@ -340,32 +355,7 @@ const KeyValueExtraction = ({
                       Approve All
                     </Button>
                   </div>
-
-                  {/* Template Field Selection Dropdown */}
-                  <div className="mb-4">
-                    <Label htmlFor="templateFields">
-                      Select Fields to Display
-                    </Label>
-                    <Select
-                      value={selectedTemplateFields.join(",")}
-                      onValueChange={(value) => {
-                        const fields = value ? value.split(",") : [];
-                        setSelectedTemplateFields(fields);
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select fields to display" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {getTemplateFields().map((field) => (
-                          <SelectItem key={field} value={field}>
-                            {formatFieldName(field)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
+                  {/* Removed Template Field Selection Dropdown */}
                   <div className="space-y-4">
                     {getTemplateFields()
                       .filter((field) => selectedTemplateFields.includes(field))
@@ -442,14 +432,33 @@ const KeyValueExtraction = ({
           <Save className="mr-2 h-5 w-5" />
           Save Data
         </Button>
-        <Button
-          onClick={handleSaveAsTemplate}
-          variant="outline"
-          className="flex-1 max-w-xs text-lg py-3"
+      </div>
+      {/* Floating AI Chatbot Button and Chat Box */}
+      <div>
+        {/* Floating Button */}
+        <button
+          type="button"
+          className="fixed bottom-8 right-8 z-50 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg w-14 h-14 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-400"
+          onClick={() => setShowChat((prev) => !prev)}
+          aria-label="Chat with AI Assistant"
         >
-          <FileSpreadsheet className="mr-2 h-5 w-5" />
-          Save as New Template
-        </Button>
+          <Bot className="h-7 w-7" />
+        </button>
+        {/* Floating Chat Box */}
+        {showChat && (
+          <div className="fixed bottom-28 right-8 z-50 w-80 max-w-full shadow-2xl rounded-xl bg-white border border-gray-200 animate-fade-in">
+            <div className="flex justify-end p-2">
+              <button
+                className="text-gray-400 hover:text-gray-600"
+                onClick={() => setShowChat(false)}
+                aria-label="Close chat"
+              >
+                <span className="text-xl font-bold">×</span>
+              </button>
+            </div>
+            <AIAssistant documents={[]} />
+          </div>
+        )}
       </div>
     </div>
   );
